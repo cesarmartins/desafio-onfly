@@ -1,101 +1,133 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\TravelRequest;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\StoreTravelRequest;
+use App\Http\Requests\UpdateTravelStatusRequest;
+use App\Http\Resources\TravelRequestResource;
+use App\Services\TravelRequestService;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 
+/**
+ * @OA\Info(
+ *     version="1.0.0",
+ *     title="Microserviço de Viagens Corporativas",
+ *     description="API para gerenciamento de pedidos de viagem",
+ *     @OA\Contact(
+ *         email="cesar@onfly.dev"
+ *     )
+ * )
+ *
+ * @OA\SecurityScheme(
+ *     type="http",
+ *     description="Token de acesso via Sanctum",
+ *     name="Authorization",
+ *     in="header",
+ *     scheme="bearer",
+ *     bearerFormat="JWT",
+ *     securityScheme="sanctum"
+ * )
+ */
 class TravelRequestController extends Controller
 {
-    // Listar todos os pedidos, com filtro por status
+    protected TravelRequestService $service;
+
+    public function __construct(TravelRequestService $service)
+    {
+        $this->service = $service;
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/travel-requests",
+     *     summary="Listar todos os pedidos de viagem",
+     *     tags={"Travel Requests"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="status", in="query", required=false, @OA\Schema(type="string")),
+     *     @OA\Parameter(name="destination", in="query", required=false, @OA\Schema(type="string")),
+     *     @OA\Parameter(name="from_date", in="query", required=false, @OA\Schema(type="string", format="date")),
+     *     @OA\Parameter(name="to_date", in="query", required=false, @OA\Schema(type="string", format="date")),
+     *     @OA\Response(response=200, description="Lista de pedidos")
+     * )
+     */
     public function index(Request $request)
     {
-        $query = TravelRequest::query();
-
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('destination')) {
-            $query->where('destination', 'like', '%' . $request->destination . '%');
-        }
-
-        if ($request->has(['from_date', 'to_date'])) {
-            $query->where(function ($q) use ($request) {
-                $q->whereBetween('departure_date', [$request->from_date, $request->to_date])
-                    ->orWhereBetween('return_date', [$request->from_date, $request->to_date]);
-            });
-        }
-        return response()->json($query->get());
+        Log::debug("Controller Index");
+        $travels = $this->service->filter($request);
+        return TravelRequestResource::collection($travels);
     }
 
-    // Mostrar um pedido específico
-    public function show($id)
+    /**
+     * @OA\Get(
+     *     path="/api/travel-requests/{id}",
+     *     summary="Consultar pedido de viagem por ID",
+     *     tags={"Travel Requests"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="Detalhes do pedido")
+     * )
+     */
+    public function show(string $id)
+    {
+        Log::debug("Controller Show");
+        return new TravelRequestResource($this->service->get($id));
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/travel-requests",
+     *     summary="Criar um novo pedido de viagem",
+     *     tags={"Travel Requests"},
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"requester_name", "destination", "departure_date", "return_date"},
+     *             @OA\Property(property="requester_name", type="string"),
+     *             @OA\Property(property="destination", type="string"),
+     *             @OA\Property(property="departure_date", type="string", format="date"),
+     *             @OA\Property(property="return_date", type="string", format="date")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Pedido criado com sucesso")
+     * )
+     */
+    public function store(StoreTravelRequest $request)
+    {
+        Log::debug("Controller Store");
+        $travel = $this->service->create($request->validated());
+        return new TravelRequestResource($travel);
+    }
+
+    /**
+     * @OA\Patch(
+     *     path="/api/travel-requests/{id}/status",
+     *     summary="Atualizar status do pedido de viagem",
+     *     tags={"Travel Requests"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="string")),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"status"},
+     *             @OA\Property(property="status", type="string", enum={"aprovado", "cancelado"})
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Status atualizado com sucesso")
+     * )
+     */
+    public function updateStatus(UpdateTravelStatusRequest $request, string $id)
     {
         try {
-            $request = TravelRequest::findOrFail($id);
-            return response()->json($request);
+            Log::debug("Controller updateStatus");
+            $travel = $this->service->updateStatus($id, $request->validated('status'));
+            return new TravelRequestResource($travel);
         } catch (\Exception $e) {
-            \Log::error('Erro ao buscar viagem: ' . $e->getMessage());
-            return response()->json([
-                'error' => 'Erro ao buscar pedido de viagem.',
-                'details' => $e->getMessage(),
-            ], 500);
+            throw new HttpResponseException(response()->json([
+                'message' => 'Não foi possível atualizar o status.',
+                'error' => $e->getMessage(),
+            ], 422));
         }
-    }
-
-    // Criar novo pedido de viagem
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'requester_name' => 'required|string|max:255',
-            'destination' => 'required|string|max:255',
-            'departure_date' => 'required|date',
-            'return_date' => 'required|date|after_or_equal:departure_date',
-        ]);
-
-        //$data['user_id'] = Auth::id();
-        $data['user_id'] = $request->get('user_id');
-
-        $data['status'] = 'solicitado';
-
-        $travel = TravelRequest::create($data);
-
-        return response()->json($travel, 201);
-    }
-
-    // Atualizar status (apenas se não for o solicitante)
-    public function updateStatus(Request $request, $id)
-    {
-        $request->validate([
-            'status' => 'required|in:aprovado,cancelado'
-        ]);
-
-        $travel = TravelRequest::findOrFail($id);
-
-        if ($request->status === 'cancelado' && $travel->status !== 'aprovado') {
-            return response()->json([
-                'error' => 'Somente pedidos aprovados podem ser cancelados.'], 422);
-        }
-
-        $travel->status = $request->status;
-
-        try {
-            $user = User::find($travel->user_id);
-            $email = $user ? $user->email : 'desconhecido@onfly.dev';
-
-            // simulação da notificação
-            Log::info("[NOTIFICAÇÃO FAKE] O pedido de viagem #{$travel->id} foi {$travel->status} e uma notificação foi enviada para {$email}");
-
-            $travel->notified = true;
-        } catch (\Exception $e) {
-            Log::warning("[NOTIFICAÇÃO FALHOU] Não foi possível notificar sobre o pedido #{$travel->id}: {$e->getMessage()}");
-            $travel->notified = false;
-        }
-
-        $travel->save();
-        return response()->json($travel);
     }
 }

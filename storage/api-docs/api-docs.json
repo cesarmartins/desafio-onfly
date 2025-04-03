@@ -1,0 +1,273 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Microserviço de Viagens Corporativas",
+        "description": "API para gerenciamento de pedidos de viagem",
+        "contact": {
+            "email": "cesar@onfly.dev"
+        },
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/login": {
+            "post": {
+                "tags": [
+                    "Autenticação"
+                ],
+                "summary": "Faz login do usuário e retorna um token de acesso",
+                "operationId": "a3b306d14572d1f4bd6c064b3233e7b8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "example": "cesar@onfly.dev"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login bem-sucedido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "token": {
+                                            "type": "string",
+                                            "example": "1|asdkjasdhjkash"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Credenciais inválidas"
+                    }
+                }
+            }
+        },
+        "/api/travel-requests": {
+            "get": {
+                "tags": [
+                    "Travel Requests"
+                ],
+                "summary": "Listar todos os pedidos de viagem",
+                "operationId": "7a72e8faefec775126f85d62cd5185b7",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "destination",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "from_date",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to_date",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de pedidos"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Travel Requests"
+                ],
+                "summary": "Criar um novo pedido de viagem",
+                "operationId": "b9e9a9a8dc126fa0dfbf370c74e4661d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "requester_name",
+                                    "destination",
+                                    "departure_date",
+                                    "return_date"
+                                ],
+                                "properties": {
+                                    "requester_name": {
+                                        "type": "string"
+                                    },
+                                    "destination": {
+                                        "type": "string"
+                                    },
+                                    "departure_date": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "return_date": {
+                                        "type": "string",
+                                        "format": "date"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Pedido criado com sucesso"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/travel-requests/{id}": {
+            "get": {
+                "tags": [
+                    "Travel Requests"
+                ],
+                "summary": "Consultar pedido de viagem por ID",
+                "operationId": "551a6d22e812f3c78eee220769133cba",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detalhes do pedido"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/travel-requests/{id}/status": {
+            "patch": {
+                "tags": [
+                    "Travel Requests"
+                ],
+                "summary": "Atualizar status do pedido de viagem",
+                "operationId": "6620e1047e6762253958dfe23f6780ee",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "status"
+                                ],
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "aprovado",
+                                            "cancelado"
+                                        ]
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Status atualizado com sucesso"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "sanctum": {
+                "type": "http",
+                "description": "Token de acesso via Sanctum",
+                "name": "Authorization",
+                "in": "header",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Autenticação",
+            "description": "Autenticação"
+        },
+        {
+            "name": "Travel Requests",
+            "description": "Travel Requests"
+        }
+    ]
+}
