@@ -31,6 +31,10 @@ docker-compose up -d
 ---
 # ⚙️ Configuração do ambiente
 
+### 1. Entre no container:
+```bash
+docker exec -it travel-app bash
+```
 ### 1. Copie o .env.example:
 ```bash
 cp .env.example .env
@@ -38,7 +42,7 @@ cp .env.example .env
 
 ### 2. Gere a chave de aplicação:
 ```bash
-cp .env.example .env
+php artisan key:generate
 ```
 
 ### 3. Ajuste o .env para usar MySQL:
@@ -47,8 +51,8 @@ DB_CONNECTION=mysql
 DB_HOST=db
 DB_PORT=3306
 DB_DATABASE=travel_db
-DB_USERNAME=travel_user
-DB_PASSWORD=secret
+DB_USERNAME=root
+DB_PASSWORD=root
 ```
 
 ### 4. Rode as migrations:
@@ -103,12 +107,12 @@ Use o botão "Authorize" para colar seu token JWT do login.
 # 🔍 Endpoints principais
 
 | Método | Endpoint                      | Descrição                          |
-GET	/api/travel-requests	Listar pedidos (com filtros)
-GET	/api/travel-requests/{id}	Ver detalhes de um pedido
-POST	/api/travel-requests	Criar novo pedido
-PATCH	/api/travel-requests/{id}/status	Atualizar status (aprovado/cancelado)
-POST	/api/login	Gera token de autenticação  
-
+|--------|-------------------------------|------------------------------------|
+| GET    | /api/travel-requests          | Listar pedidos (com filtros)       |
+| GET    | /api/travel-requests/{id}     | Ver detalhes de um pedido          |
+| POST   | /api/travel-requests          | Criar novo pedido                  |
+| PATCH  | /api/travel-requests/{id}/status | Atualizar status (aprovado/cancelado) |
+| POST   | /api/login                    | Gera token de autenticação         |
     
 # 🧪 Testes automatizados
 ```bash
