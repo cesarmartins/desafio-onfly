@@ -7,6 +7,7 @@ use Tests\TestCase;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 use App\Models\TravelRequest;
+use PHPUnit\Framework\Attributes\Test;
 
 class TravelRequestTest extends TestCase
 {
@@ -19,7 +20,7 @@ class TravelRequestTest extends TestCase
         return $user;
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_a_travel_request()
     {
         $this->authenticate();
@@ -37,7 +38,7 @@ class TravelRequestTest extends TestCase
             ->assertJsonFragment(['destination' => 'Berlim']);
     }
 
-    /** @test */
+    #[Test]
     public function it_lists_travel_requests()
     {
         $user = $this->authenticate();
@@ -56,7 +57,7 @@ class TravelRequestTest extends TestCase
             ->assertJsonFragment(['destination' => 'Lisboa']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_unauthenticated_access()
     {
         $response = $this->getJson('/api/travel-requests');
